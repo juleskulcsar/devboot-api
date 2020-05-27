@@ -56,7 +56,8 @@ exports.getBootcamps = asyncHandler(async (req, res, next) => {
 
 
     //find data
-    query = Bootcamp.find(JSON.parse(queryString))
+    //populate will do a reverse populate, showing courses in bootcamps/ virtuals
+    query = Bootcamp.find(JSON.parse(queryString)).populate('courses')
 
     //select fields --- read mongoose documenation
     if (req.query.select) {
@@ -214,10 +215,14 @@ exports.updateBootcamp = asyncHandler(async (req, res, next) => {
 //@route DELETE /api/v1/bootcamps/:id
 //@access public
 exports.deleteBootcamp = asyncHandler(async (req, res, next) => {
-    const bootcamp = await Bootcamp.findByIdAndDelete(req.params.id)
+    const bootcamp = await Bootcamp.findById(req.params.id)
     if (!bootcamp) {
         return next(new ErrorResponse(`bootcamp with id ${req.params.id} does not exists`, 404))
     }
+
+    //this method will trigger the pre.remove middleware in models/Bootcamp
+    bootcamp.remove();
+
     res.status(200).json({
         success: true, data: {}
     })
