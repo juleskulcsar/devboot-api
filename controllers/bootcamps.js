@@ -35,14 +35,48 @@ exports.getBootcamps = asyncHandler(async (req, res, next) => {
     // console.log("req.query is: ", req.query)
 
     let query;
-    let queryString = JSON.stringify(req.query)
-    queryString = queryString.replace(/\b(gt|gte|lt|lte|in)\b/g, match => `$${match}`)
-    console.log('queryString: ', queryString)
 
+    //copy req.query object
+    const requestQuery = { ...req.query }
+
+    //fields to exclude from result
+    const removeFields = ['select', 'sort']
+
+    //loop over removeFields and delete them from requestQuery
+    removeFields.forEach(param => delete requestQuery[param])
+
+    // console.log('requestQuery: ', requestQuery)
+
+    //create the query string
+    let queryString = JSON.stringify(requestQuery)
+
+    //create operators like gt, gte etc
+    queryString = queryString.replace(/\b(gt|gte|lt|lte|in)\b/g, match => `$${match}`)
+    // console.log('queryString: ', queryString)
+
+
+    //find data
     query = Bootcamp.find(JSON.parse(queryString))
 
+    //select fields --- read mongoose documenation
+    if (req.query.select) {
+        const fields = req.query.select.split(',').join(' ')
+        // console.log('fields: ', fields)
+        query = query.select(fields)
+    }
+
+    //sort
+    if (req.query.sort) {
+        const sortBy = req.query.sort.split(',').join(' ')
+        query = query.sort(sortBy)
+    } else {
+        query = query.sort('-createdAt')
+    }
+
+    //execute query
     // const bootcamps = await Bootcamp.find()
     const bootcamps = await query
+
     res.status(200).json({
         success: true,
         count: bootcamps.length,
